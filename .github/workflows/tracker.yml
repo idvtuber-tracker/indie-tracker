@@ -117,15 +117,12 @@ jobs:
           echo "https://x-access-token:${PAT}@github.com" > "$HOME/.git-credentials"
           echo "Remote URL and credentials set."
 
-      - name: Set up Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install dependencies
-        shell: bash
-        run: pip install -r requirements.txt
+      - name: Set up venv and install dependencies
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+          echo "$PWD/.venv/bin" >> $GITHUB_PATH
 
       - name: Run tracker
         id: run_tracker
