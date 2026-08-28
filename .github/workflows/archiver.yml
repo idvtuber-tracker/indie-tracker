@@ -60,13 +60,13 @@ jobs:
         env:
           HISTORY_REPO_PAT: ${{ secrets.HISTORY_REPO_PAT }}
         run: |
-          REPO_URL="https://x-access-token:${HISTORY_REPO_PAT}@github.com/${{ github.repository_owner }}/idvt-history.git"
-          if git clone --depth=1 "$REPO_URL" idvt-history 2>/dev/null; then
+          REPO_URL="https://x-access-token:${HISTORY_REPO_PAT}@github.com/${{ github.repository_owner }}/idvt-indie-history.git"
+          if git clone --depth=1 "$REPO_URL" idvt-indie-history 2>/dev/null; then
             echo "history repo cloned successfully."
           else
             echo "history repo is empty or unreachable — initialising fresh repo."
-            mkdir -p idvt-history
-            cd idvt-history
+            mkdir -p idvt-indie-history
+            cd idvt-indie-history
             git init
             git remote add origin "$REPO_URL"
             git checkout -b main
@@ -85,17 +85,17 @@ jobs:
         working-directory: tracker
         env:
           AIVEN_DATABASE_URL: ${{ secrets.AIVEN_DATABASE_URL }}
-          HISTORY_DB_PATH: ${{ github.workspace }}/idvt-history/history.db
+          HISTORY_DB_PATH: ${{ github.workspace }}/idvt-indie-history/history.db
           ARCHIVE_THRESHOLD_DAYS: ${{ github.event.inputs.threshold_days || '25' }}
         run: |
           python archiver.py
 
       - name: Commit and push history.db
-        working-directory: idvt-history
+        working-directory: idvt-indie-history
         env:
           HISTORY_REPO_PAT: ${{ secrets.HISTORY_REPO_PAT }}
         run: |
-          REPO_URL="https://x-access-token:${HISTORY_REPO_PAT}@github.com/${{ github.repository_owner }}/idvt-history.git"
+          REPO_URL="https://x-access-token:${HISTORY_REPO_PAT}@github.com/${{ github.repository_owner }}/idvt-indie-history.git"
           git remote set-url origin "$REPO_URL"
           git config user.name  "IDVTuber Archiver"
           git config user.email "archiver@idvtuber-tracker"
