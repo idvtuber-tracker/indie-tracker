@@ -1,0 +1,110 @@
+name: Archive Historical Streams
+
+on:
+  schedule:
+    # Runs daily at 20:00 UTC (03:00 WIB) — well outside peak streaming hours
+    - cron: '0 20 * * *'
+  workflow_dispatch:
+    # Allow manual trigger from GitHub Actions UI for testing or catch-up runs
+    inputs:
+      threshold_days:
+        description: 'Archive streams older than N days (default: 25)'
+        required: false
+        default: '25'
+
+concurrency:
+  group: archiver
+  cancel-in-progress: false  # never cancel a running archival — data safety first
+
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clean up old archiver runs
+        if: always()
+        run: |
+          HEADERS=(-H "Authorization: Bearer ${{ secrets.GH_PAT }}"
+                   -H "Accept: application/vnd.github+json"
+                   -H "X-GitHub-Api-Version: 2022-11-28")
+          REPO="${{ github.repository }}"
+          CURRENT="${{ github.run_id }}"
+
+          # Fetch only completed runs of THIS workflow (archiver.yml)
+          # so runs from deploy_dashboard.yml or tracker.yml are never touched.
+          RUNS=$(curl -s "${HEADERS[@]}" \
+            "https://api.github.com/repos/$REPO/actions/workflows/archiver.yml/runs?status=completed&per_page=100" \
+            | python3 -c "
+          import sys, json
+          runs = json.load(sys.stdin).get('workflow_runs', [])
+          # Skip all recent completed runs — keep active history
+          for r in runs[1:]:
+              print(r['id'])
+          ")
+
+          for RUN_ID in $RUNS; do
+            if [ "$RUN_ID" != "$CURRENT" ]; then
+              curl -s -X DELETE "${HEADERS[@]}" \
+                "https://api.github.com/repos/$REPO/actions/runs/$RUN_ID"
+              echo "Deleted run $RUN_ID"
+            fi
+          done
+          echo "Cleanup complete."
+
+      - name: Checkout tracker repo
+        uses: actions/checkout@v4
+        with:
+          path: tracker
+
+      - name: Checkout history repo
+        env:
+          HISTORY_REPO_PAT: ${{ secrets.HISTORY_REPO_PAT }}
+        run: |
+          REPO_URL="https://x-access-token:${HISTORY_REPO_PAT}@github.com/${{ github.repository_owner }}/idvt-history.git"
+          if git clone --depth=1 "$REPO_URL" idvt-history 2>/dev/null; then
+            echo "history repo cloned successfully."
+          else
+            echo "history repo is empty or unreachable — initialising fresh repo."
+            mkdir -p idvt-history
+            cd idvt-history
+            git init
+            git remote add origin "$REPO_URL"
+            git checkout -b main
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install psycopg2-binary
+
+      - name: Run archiver
+        working-directory: tracker
+        env:
+          AIVEN_DATABASE_URL: ${{ secrets.AIVEN_DATABASE_URL }}
+          HISTORY_DB_PATH: ${{ github.workspace }}/idvt-history/history.db
+          ARCHIVE_THRESHOLD_DAYS: ${{ github.event.inputs.threshold_days || '25' }}
+        run: |
+          python archiver.py
+
+      - name: Commit and push history.db
+        working-directory: idvt-history
+        env:
+          HISTORY_REPO_PAT: ${{ secrets.HISTORY_REPO_PAT }}
+        run: |
+          REPO_URL="https://x-access-token:${HISTORY_REPO_PAT}@github.com/${{ github.repository_owner }}/idvt-history.git"
+          git remote set-url origin "$REPO_URL"
+          git config user.name  "IDVTuber Archiver"
+          git config user.email "archiver@idvtuber-tracker"
+          git add history.db
+          if git diff --cached --quiet; then
+            echo "No new streams archived — nothing to commit."
+          else
+            TIMESTAMP=$(date -u +"%Y-%m-%d %H:%M UTC")
+            git commit -m "archive: ${TIMESTAMP}"
+            git push --set-upstream origin main
+            echo "history.db pushed successfully."
+          fi
