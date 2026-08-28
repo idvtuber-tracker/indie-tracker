@@ -117,6 +117,9 @@ jobs:
           echo "https://x-access-token:${PAT}@github.com" > "$HOME/.git-credentials"
           echo "Remote URL and credentials set."
 
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libpq-dev
+
       - name: Set up venv and install dependencies
         run: |
           python3 -m venv .venv
