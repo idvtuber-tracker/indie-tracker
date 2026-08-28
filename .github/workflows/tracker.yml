@@ -17,7 +17,7 @@ jobs:
       AIVEN_DATABASE_URL:   ${{ secrets.AIVEN_DATABASE_URL }}
       GH_PAT:               ${{ secrets.GH_PAT }}
       GITHUB_REPOSITORY:    ${{ github.repository }}
-      DASHBOARD_REPO:       idvtuber-tracker/dashboard
+      DASHBOARD_REPO:       idvtuber-tracker/indie-dashboard
       CSV_OUTPUT_PATH:      analytics.csv
       POLL_INTERVAL_SEC:    "900"
       DEPLOY_INTERVAL_SEC:  "900"
@@ -104,7 +104,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: idvtuber-tracker/tracker
+          repository: idvtuber-tracker/indie-tracker
           token: ${{ secrets.GH_PAT }}
 
       - name: Debug — show commit and requirements.txt
