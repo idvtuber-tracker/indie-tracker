@@ -107,6 +107,12 @@ jobs:
           repository: idvtuber-tracker/tracker
           token: ${{ secrets.GH_PAT }}
 
+      - name: Debug — show commit and requirements.txt
+        run: |
+          git rev-parse HEAD
+          git log -1 --oneline
+          cat requirements.txt
+
       - name: Force git remote URL with PAT
         shell: bash
         run: |
