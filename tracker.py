@@ -5,7 +5,7 @@ Monitors specified channels for live streams and collects real-time analytics.
 import sys
 import io
 
-# Force UTF-8 output on Windows to support emoji and special characters
+# Force UTF-8 output so emoji and special characters never crash logging
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8', errors='replace')
 
@@ -409,7 +409,7 @@ def deploy_dashboard() -> None:
     Previously this function also cloned the dashboard repo, copied tracker's
     own locally pre-rendered dashboard/ folder into it, committed, and pushed
     before dispatching. That meant the dashboard was fully generated twice per
-    deploy cycle — once here on the Windows self-hosted runner (via the now-
+    deploy cycle — once here on the tracker runner (via the now-
     removed regenerate_dashboard()), and again inside the GH Actions workflow
     itself. Removing the local generation entirely and leaving this function
     as a thin trigger eliminates that duplicated work; the workflow's own
