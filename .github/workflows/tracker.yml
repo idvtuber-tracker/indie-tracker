@@ -52,7 +52,7 @@ jobs:
       #
       # If this variable is left empty, deploy_dashboard() logs an error and
       # skips the dispatch (no automatic fallback to the tracker repo).
-      DASHBOARD_REPO:       idvtuber-tracker/dashboard
+      DASHBOARD_REPO:       idvtuber-tracker/indie-dashboard
 
       CSV_OUTPUT_PATH:      analytics.csv
       POLL_INTERVAL_SEC:    "900"
@@ -133,7 +133,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          repository: idvtuber-tracker/tracker
+          repository: idvtuber-tracker/indie-tracker
           token: ${{ secrets.GH_PAT }}
 
       - name: Force git remote URL with PAT
